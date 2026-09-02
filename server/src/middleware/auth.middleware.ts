@@ -1,4 +1,5 @@
-import { NextFunction, Request, Response } from "express";
+import { Response, NextFunction } from "express";
+import type { AuthenticatedRequest } from "../types/express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
 import { ApiError } from "../utils/ApiError";
@@ -8,7 +9,7 @@ interface JwtPayload {
 }
 
 export const authenticate = (
-  req: Request,
+  req: AuthenticatedRequest,
   _res: Response,
   next: NextFunction
 ): void => {
@@ -27,13 +28,19 @@ export const authenticate = (
     ) as JwtPayload;
 
     if (!decoded.userId) {
-      throw new ApiError(401, "Invalid authentication token");
+      throw new ApiError(
+        401,
+        "Invalid authentication token"
+      );
     }
 
     req.userId = decoded.userId;
 
     next();
   } catch {
-    throw new ApiError(401, "Invalid or expired authentication token");
+    throw new ApiError(
+      401,
+      "Invalid or expired authentication token"
+    );
   }
 };

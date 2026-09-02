@@ -10,6 +10,37 @@ export interface IUser extends Document {
   resumeText?: string;
   createdAt: Date;
   updatedAt: Date;
+  resumeAnalysis?: {
+  professionalSummary: string;
+  targetRole: string;
+  careerScore: number;
+
+  skills: string[];
+
+  experience: {
+    company: string;
+    role: string;
+    duration: string;
+    highlights: string[];
+  }[];
+
+  education: {
+    institution: string;
+    degree: string;
+    field: string;
+    duration: string;
+  }[];
+
+  projects: {
+    name: string;
+    description: string;
+    technologies: string[];
+  }[];
+
+  strengths: string[];
+  skillGaps: string[];
+  recommendations: string[];
+};
 }
 
 const userSchema = new Schema<IUser>(
@@ -59,6 +90,10 @@ const userSchema = new Schema<IUser>(
       type: String,
       default: "",
     },
+    resumeAnalysis: {
+  type: Schema.Types.Mixed,
+  default: null,
+},
   },
   {
     timestamps: true,

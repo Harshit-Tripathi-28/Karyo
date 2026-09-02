@@ -9,7 +9,7 @@ import { errorMiddleware } from "./middleware/error.middleware";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import { Request, Response } from "express";
-
+import resumeRoutes from "./routes/resume.routes";
 const app = express();
 
 app.use(
@@ -33,7 +33,7 @@ app.get("/api/health", (_req: Request, res: Response) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
-
+app.use("/api/resume", resumeRoutes);
 app.use(errorMiddleware);
 
 const startServer = async (): Promise<void> => {

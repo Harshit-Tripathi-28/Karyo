@@ -1,18 +1,27 @@
-import { NextFunction, Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { ApiError } from "../utils/ApiError";
 
 export const errorMiddleware = (
-  error: Error,
+  err: unknown,
   _req: Request,
   res: Response,
   _next: NextFunction
 ): void => {
-  console.error(error);
+  console.error("KARYO API ERROR:", err);
 
-  if (error instanceof ApiError) {
-    res.status(error.statusCode).json({
+  if (err instanceof ApiError) {
+    res.status(err.statusCode).json({
       success: false,
-      message: error.message,
+      message: err.message,
+    });
+
+    return;
+  }
+
+  if (err instanceof Error) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
     });
 
     return;

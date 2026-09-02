@@ -1,34 +1,55 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
-import { ApiError } from "../utils/ApiError";
 import { User } from "../models/User";
+import { ApiError } from "../utils/ApiError";
 
-interface AuthPayload {
+interface AuthTokenPayload {
   userId: string;
 }
 
-const generateToken = (userId: string): string => {
+const createToken = (userId: string): string => {
   return jwt.sign(
-    { userId } satisfies AuthPayload,
+    { userId } satisfies AuthTokenPayload,
     env.jwtSecret,
-    { expiresIn: "7d" }
+    {
+      expiresIn: "7d",
+    }
   );
 };
+
+const sanitizeUser = (user: {
+  id: string;
+  name: string;
+  email: string;
+  targetRole?: string;
+  skills: string[];
+  careerScore: number;
+  createdAt: Date;
+}) => ({
+  id: user.id,
+  name: user.name,
+  email: user.email,
+  targetRole: user.targetRole,
+  skills: user.skills,
+  careerScore: user.careerScore,
+  createdAt: user.createdAt,
+});
 
 export const registerUser = async (
   name: string,
   email: string,
   password: string
 ) => {
+  const normalizedName = name.trim();
   const normalizedEmail = email.trim().toLowerCase();
 
-  const existingUser = await User.findOne({
-    email: normalizedEmail,
-  });
+  if (normalizedName.length < 2) {
+    throw new ApiError(400, "Name must contain at least 2 characters");
+  }
 
-  if (existingUser) {
-    throw new ApiError(409, "An account with this email already exists");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    throw new ApiError(400, "Please provide a valid email address");
   }
 
   if (password.length < 8) {
@@ -38,26 +59,28 @@ export const registerUser = async (
     );
   }
 
+  const existingUser = await User.findOne({
+    email: normalizedEmail,
+  });
+
+  if (existingUser) {
+    throw new ApiError(
+      409,
+      "An account with this email already exists"
+    );
+  }
+
   const passwordHash = await bcrypt.hash(password, 12);
 
   const user = await User.create({
-    name: name.trim(),
+    name: normalizedName,
     email: normalizedEmail,
     passwordHash,
   });
 
-  const token = generateToken(user.id);
-
   return {
-    token,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      targetRole: user.targetRole,
-      skills: user.skills,
-      careerScore: user.careerScore,
-    },
+    token: createToken(user.id),
+    user: sanitizeUser(user),
   };
 };
 
@@ -84,17 +107,8 @@ export const loginUser = async (
     throw new ApiError(401, "Invalid email or password");
   }
 
-  const token = generateToken(user.id);
-
   return {
-    token,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      targetRole: user.targetRole,
-      skills: user.skills,
-      careerScore: user.careerScore,
-    },
+    token: createToken(user.id),
+    user: sanitizeUser(user),
   };
 };
