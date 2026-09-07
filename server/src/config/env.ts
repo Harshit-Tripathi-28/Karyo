@@ -13,5 +13,6 @@ export const env = {
   clientUrl: process.env.CLIENT_URL ?? "http://localhost:5173",
   mongoUri: requiredEnv("MONGODB_URI"),
   jwtSecret: requiredEnv("JWT_SECRET"),
-  openaiApiKey: requiredEnv("OPENAI_API_KEY"),
+  geminiApiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "",
+  geminiModel: process.env.GEMINI_MODEL || "gemini-2.5-flash",
 };

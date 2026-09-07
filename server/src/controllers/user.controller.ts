@@ -1,9 +1,10 @@
-import { Request, Response } from "express";
+import { Response } from "express";
+import type { AuthenticatedRequest } from "../types/express";
 import { User } from "../models/User";
 import { ApiError } from "../utils/ApiError";
 
 export const getCurrentUser = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   if (!req.userId) {
@@ -25,13 +26,14 @@ export const getCurrentUser = async (
       targetRole: user.targetRole,
       skills: user.skills,
       careerScore: user.careerScore,
+      resumeAnalysis: user.resumeAnalysis ?? null,
       createdAt: user.createdAt,
     },
   });
 };
 
 export const updateProfile = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   if (!req.userId) {
@@ -51,14 +53,33 @@ export const updateProfile = async (
   }
 
   if (typeof targetRole === "string") {
-    user.targetRole = targetRole.trim();
+    const trimmedRole = targetRole.trim();
+    user.targetRole = trimmedRole;
+
+    if (user.resumeAnalysis) {
+      user.resumeAnalysis = {
+        ...user.resumeAnalysis,
+        targetRole: trimmedRole,
+      };
+      user.markModified("resumeAnalysis");
+    }
   }
 
   if (Array.isArray(skills)) {
-    user.skills = skills
+    const updatedSkills = skills
       .filter((skill): skill is string => typeof skill === "string")
       .map((skill) => skill.trim())
       .filter(Boolean);
+
+    user.skills = updatedSkills;
+
+    if (user.resumeAnalysis) {
+      user.resumeAnalysis = {
+        ...user.resumeAnalysis,
+        skills: updatedSkills,
+      };
+      user.markModified("resumeAnalysis");
+    }
   }
 
   await user.save();
@@ -72,6 +93,8 @@ export const updateProfile = async (
       targetRole: user.targetRole,
       skills: user.skills,
       careerScore: user.careerScore,
+      resumeAnalysis: user.resumeAnalysis ?? null,
+      createdAt: user.createdAt,
     },
   });
 };

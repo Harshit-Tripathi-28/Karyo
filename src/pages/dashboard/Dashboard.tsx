@@ -7,12 +7,12 @@ import {
   Network,
   Sparkles,
   Target,
+  Trash2,
   Upload,
   UserRound,
 } from "lucide-react";
 
 import {
-  useEffect,
   useRef,
   useState,
   type ChangeEvent,
@@ -21,51 +21,39 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import {
   analyzeResume,
-  type ResumeAnalysis,
+  deleteResume,
 } from "../../services/resume.service";
+import { EducationSection } from "../../components/dashboard/EducationSection";
+import { ExperienceTimeline } from "../../components/dashboard/ExperienceTimeline";
+import { ProjectsSection } from "../../components/dashboard/ProjectsSection";
+import { SkillGraph } from "../../components/skills/SkillGraph";
+import { OpportunityEngine } from "../../components/opportunities/OpportunityEngine";
 
 export default function Dashboard() {
   const {
     user,
     token,
     logout,
+    updateUser,
   } = useAuth();
 
   const fileInputRef =
     useRef<HTMLInputElement>(null);
 
-  const [analysis, setAnalysis] =
-    useState<ResumeAnalysis | null>(null);
-
   const [isUploading, setIsUploading] =
+    useState(false);
+
+  const [isDeleting, setIsDeleting] =
     useState(false);
 
   const [error, setError] =
     useState("");
 
-  useEffect(() => {
-    if (!user) return;
-
-    const savedAnalysis = localStorage.getItem(
-      "karyo_resume_analysis"
-    );
-
-    if (savedAnalysis) {
-      try {
-        setAnalysis(
-          JSON.parse(savedAnalysis) as ResumeAnalysis
-        );
-      } catch {
-        localStorage.removeItem(
-          "karyo_resume_analysis"
-        );
-      }
-    }
-  }, [user]);
-
   if (!user || !token) {
     return null;
   }
+
+  const analysis = user.resumeAnalysis ?? null;
 
   const handleResumeUpload = async (
     event: ChangeEvent<HTMLInputElement>
@@ -98,12 +86,7 @@ export default function Dashboard() {
         file
       );
 
-      setAnalysis(response.resumeAnalysis);
-
-      localStorage.setItem(
-        "karyo_resume_analysis",
-        JSON.stringify(response.resumeAnalysis)
-      );
+      updateUser(response.user);
     } catch (err) {
       setError(
         err instanceof Error
@@ -113,6 +96,32 @@ export default function Dashboard() {
     } finally {
       setIsUploading(false);
       event.target.value = "";
+    }
+  };
+
+  const handleClearResume = async () => {
+    if (!token) return;
+
+    const confirmed = window.confirm(
+      "Are you sure you want to clear your current resume and career analysis? This cannot be undone."
+    );
+
+    if (!confirmed) return;
+
+    setError("");
+    setIsDeleting(true);
+
+    try {
+      const response = await deleteResume(token);
+      updateUser(response.user);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to clear resume"
+      );
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -205,7 +214,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div>
+            <div className="flex flex-wrap items-center gap-3">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -216,7 +225,7 @@ export default function Dashboard() {
 
               <button
                 type="button"
-                disabled={isUploading}
+                disabled={isUploading || isDeleting}
                 onClick={() =>
                   fileInputRef.current?.click()
                 }
@@ -236,6 +245,18 @@ export default function Dashboard() {
                   </>
                 )}
               </button>
+
+              {analysis && (
+                <button
+                  type="button"
+                  disabled={isUploading || isDeleting}
+                  onClick={handleClearResume}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-red-400/20 bg-red-400/[0.05] px-4 py-3.5 text-sm text-red-300 transition hover:border-red-400/40 hover:bg-red-400/[0.1] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {isDeleting ? "Clearing..." : "Clear resume"}
+                </button>
+              )}
             </div>
           </div>
 
@@ -317,34 +338,23 @@ export default function Dashboard() {
               </section>
             </div>
 
-            <section className="mt-5 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-7">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[9px] uppercase tracking-[0.25em] text-white/25">
-                    Capability map
-                  </p>
+            <SkillGraph
+              skills={displayAnalysis.skills}
+              skillGaps={displayAnalysis.skillGaps}
+              projects={displayAnalysis.projects}
+              experience={displayAnalysis.experience}
+              targetRole={displayAnalysis.targetRole || user.targetRole}
+            />
 
-                  <h2 className="mt-2 text-xl font-medium">
-                    Skills detected
-                  </h2>
-                </div>
-
-                <Network className="h-5 w-5 text-cyan-200/30" />
-              </div>
-
-              <div className="mt-6 flex flex-wrap gap-2">
-                {displayAnalysis.skills.map(
-                  (skill) => (
-                    <span
-                      key={skill}
-                      className="rounded-lg border border-cyan-300/10 bg-cyan-300/[0.04] px-3 py-2 text-xs text-cyan-100/70"
-                    >
-                      {skill}
-                    </span>
-                  )
-                )}
-              </div>
-            </section>
+            <OpportunityEngine
+              targetRole={displayAnalysis.targetRole || user.targetRole}
+              skills={displayAnalysis.skills}
+              skillGaps={displayAnalysis.skillGaps}
+              projects={displayAnalysis.projects}
+              experience={displayAnalysis.experience}
+              careerScore={displayAnalysis.careerScore || user.careerScore}
+              recommendations={displayAnalysis.recommendations}
+            />
 
             <div className="mt-5 grid gap-5 lg:grid-cols-2">
               <section className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-7">
@@ -418,7 +428,29 @@ export default function Dashboard() {
                 )}
               </div>
             </section>
+
+            <ExperienceTimeline experience={displayAnalysis.experience} />
+
+            <ProjectsSection projects={displayAnalysis.projects} />
+
+            <EducationSection education={displayAnalysis.education} />
           </>
+        )}
+
+        {!displayAnalysis && (
+          <section className="mt-8 rounded-2xl border border-dashed border-white/10 bg-white/[0.015] p-10 text-center backdrop-blur-xl">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.06]">
+              <BrainCircuit className="h-6 w-6 text-cyan-200" />
+            </div>
+            <h3 className="mt-4 text-lg font-medium text-white">
+              No Career Intelligence Mapped Yet
+            </h3>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-white/40">
+              Upload your PDF resume above to unlock your complete career profile
+              including detailed work history, key project architecture, education
+              credentials, and personalized AI recommendations.
+            </p>
+          </section>
         )}
       </section>
     </main>

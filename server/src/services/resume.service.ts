@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
 import { PDFParse } from "pdf-parse";
 
 import { env } from "../config/env";
@@ -6,16 +6,16 @@ import { User } from "../models/User";
 import { ApiError } from "../utils/ApiError";
 import type { ResumeAnalysis } from "../types/resume";
 
-const getOpenAIClient = (): OpenAI => {
-  if (!env.openaiApiKey) {
+const getGeminiClient = (): GoogleGenAI => {
+  if (!env.geminiApiKey) {
     throw new ApiError(
       500,
-      "OpenAI API key is not configured"
+      "Gemini API key is not configured. Please set GEMINI_API_KEY in the server environment."
     );
   }
 
-  return new OpenAI({
-    apiKey: env.openaiApiKey,
+  return new GoogleGenAI({
+    apiKey: env.geminiApiKey,
   });
 };
 
@@ -47,45 +47,67 @@ const extractPdfText = async (
 const analyzeResumeWithAI = async (
   resumeText: string
 ): Promise<ResumeAnalysis> => {
-  const client = getOpenAIClient();
+  const client = getGeminiClient();
 
-  const response = await client.responses.create({
-    model: "gpt-5-mini",
-    input: [
-      {
-        role: "system",
-        content: `
-You are KARYO's career intelligence engine.
+  const systemInstruction = `You are KARYO's neural career intelligence engine.
+Analyze the provided resume and return ONLY valid JSON matching this exact structure:
+{
+  "professionalSummary": "string",
+  "targetRole": "string",
+  "careerScore": 0-100,
+  "skills": ["string"],
+  "experience": [
+    {
+      "company": "string",
+      "role": "string",
+      "duration": "string",
+      "highlights": ["string"]
+    }
+  ],
+  "education": [
+    {
+      "institution": "string",
+      "degree": "string",
+      "field": "string",
+      "duration": "string"
+    }
+  ],
+  "projects": [
+    {
+      "name": "string",
+      "description": "string",
+      "technologies": ["string"]
+    }
+  ],
+  "strengths": ["string"],
+  "skillGaps": ["string"],
+  "recommendations": ["string"]
+}
 
-Analyze the provided resume and return ONLY valid JSON.
-
-Rules:
-- Never invent experience, education, projects or skills.
+Strict Rules:
+- Never invent experience, education, projects, or skills.
 - If information is missing, use an empty array or an empty string.
-- careerScore must be an integer from 0 to 100.
-- Identify the most suitable target role based only on the resume.
-- skillGaps should contain skills that would materially improve the candidate for the inferred target role.
-- recommendations must be practical and specific.
-- Keep professionalSummary concise.
-        `,
-      },
-      {
-        role: "user",
-        content: `
-Analyze this resume:
+- careerScore must be an integer from 0 to 100 representing overall profile readiness.
+- Identify the most suitable target role based strictly on the resume.
+- skillGaps should contain 3-6 critical skills that would materially improve the candidate for the inferred target role.
+- recommendations must be practical, actionable, and specific.
+- Keep professionalSummary concise and impactful.`;
 
-${resumeText}
-        `,
-      },
-    ],
+  const response = await client.models.generateContent({
+    model: env.geminiModel,
+    contents: `Analyze this resume:\n\n${resumeText}`,
+    config: {
+      systemInstruction,
+      responseMimeType: "application/json",
+    },
   });
 
-  const raw = response.output_text?.trim();
+  const raw = response.text?.trim();
 
   if (!raw) {
     throw new ApiError(
       502,
-      "AI analysis returned an empty response"
+      "Gemini AI analysis returned an empty response"
     );
   }
 
@@ -100,7 +122,7 @@ ${resumeText}
   } catch {
     throw new ApiError(
       502,
-      "AI returned an invalid resume analysis"
+      "Gemini AI returned an invalid resume analysis format"
     );
   }
 };
@@ -142,6 +164,7 @@ export const processResume = async (
     Math.max(0, analysis.careerScore)
   );
 
+  user.markModified("resumeAnalysis");
   await user.save();
 
   return {
@@ -153,6 +176,7 @@ export const processResume = async (
       targetRole: user.targetRole,
       skills: user.skills,
       careerScore: user.careerScore,
+      resumeAnalysis: user.resumeAnalysis ?? null,
       createdAt: user.createdAt,
     },
   };

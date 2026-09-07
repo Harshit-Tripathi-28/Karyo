@@ -33,6 +33,8 @@ interface AuthContextValue {
   ) => Promise<void>;
 
   logout: () => void;
+  updateUser: (updatedUser: User) => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext =
@@ -114,6 +116,21 @@ export function AuthProvider({
     setUser(null);
   };
 
+  const updateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+  };
+
+  const refreshUser = async () => {
+    if (!token) return;
+
+    try {
+      const response = await getCurrentUser(token);
+      setUser(response.user);
+    } catch {
+      // Keep existing state if network fails
+    }
+  };
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -123,6 +140,8 @@ export function AuthProvider({
       login,
       register,
       logout,
+      updateUser,
+      refreshUser,
     }),
     [user, token, isLoading]
   );

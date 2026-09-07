@@ -1,3 +1,5 @@
+import type { ResumeAnalysis } from "./resume";
+
 export interface User {
   id: string;
   name: string;
@@ -5,6 +7,7 @@ export interface User {
   targetRole?: string;
   skills: string[];
   careerScore: number;
+  resumeAnalysis?: ResumeAnalysis | null;
   createdAt: string;
 }
 

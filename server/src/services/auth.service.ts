@@ -25,6 +25,7 @@ const sanitizeUser = (user: {
   targetRole?: string;
   skills: string[];
   careerScore: number;
+  resumeAnalysis?: unknown;
   createdAt: Date;
 }) => ({
   id: user.id,
@@ -33,6 +34,7 @@ const sanitizeUser = (user: {
   targetRole: user.targetRole,
   skills: user.skills,
   careerScore: user.careerScore,
+  resumeAnalysis: user.resumeAnalysis ?? null,
   createdAt: user.createdAt,
 });
 

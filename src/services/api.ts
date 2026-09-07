@@ -22,17 +22,14 @@ export const apiRequest = async <T>(
     ...requestOptions
   } = options;
 
-  const requestHeaders: HeadersInit = {
-    ...(token
-      ? {
-          Authorization: `Bearer ${token}`,
-        }
-      : {}),
-    ...headers,
-  };
+  const requestHeaders = new Headers(headers);
 
-  if (!isFormData) {
-    requestHeaders["Content-Type"] = "application/json";
+  if (token) {
+    requestHeaders.set("Authorization", `Bearer ${token}`);
+  }
+
+  if (!isFormData && !requestHeaders.has("Content-Type")) {
+    requestHeaders.set("Content-Type", "application/json");
   }
 
   const response = await fetch(

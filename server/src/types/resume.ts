@@ -25,6 +25,8 @@ export interface ResumeAnalysis {
     name: string;
     description: string;
     technologies: string[];
+    url?: string;
+    link?: string;
   }[];
 
   strengths: string[];
