@@ -5,6 +5,7 @@ import {
   FileText,
   LogOut,
   Network,
+  Pencil,
   Sparkles,
   Target,
   Trash2,
@@ -17,6 +18,7 @@ import {
   useState,
   type ChangeEvent,
 } from "react";
+import { Link } from "react-router-dom";
 
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -28,6 +30,7 @@ import { ExperienceTimeline } from "../../components/dashboard/ExperienceTimelin
 import { ProjectsSection } from "../../components/dashboard/ProjectsSection";
 import { SkillGraph } from "../../components/skills/SkillGraph";
 import { OpportunityEngine } from "../../components/opportunities/OpportunityEngine";
+import { ProfileEditorModal } from "../../components/profile/ProfileEditorModal";
 
 export default function Dashboard() {
   const {
@@ -44,6 +47,9 @@ export default function Dashboard() {
     useState(false);
 
   const [isDeleting, setIsDeleting] =
+    useState(false);
+
+  const [isProfileEditorOpen, setIsProfileEditorOpen] =
     useState(false);
 
   const [error, setError] =
@@ -125,13 +131,40 @@ export default function Dashboard() {
     }
   };
 
-  const displayAnalysis = analysis;
+  const displayAnalysis =
+    analysis ??
+    (user.skills.length > 0 || Boolean(user.targetRole)
+      ? {
+          professionalSummary: `Career profile for ${user.name}${
+            user.targetRole ? ` targeting ${user.targetRole}` : ""
+          }.`,
+          targetRole: user.targetRole || "",
+          careerScore: user.careerScore || 50,
+          skills: user.skills,
+          experience: [],
+          education: [],
+          projects: [],
+          strengths: user.skills
+            .slice(0, 3)
+            .map((s) => `Verified competency in ${s}`),
+          skillGaps: [],
+          recommendations: user.targetRole
+            ? [
+                `Build focused portfolio projects demonstrating ${user.targetRole} capabilities.`,
+              ]
+            : [],
+        }
+      : null);
 
   return (
     <main className="min-h-screen bg-[#020307] text-white">
       <header className="border-b border-white/[0.06]">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-10">
-          <div className="flex items-center gap-3">
+          <Link
+            to="/"
+            className="flex items-center gap-3 transition opacity-90 hover:opacity-100"
+            title="Return to KARYO Home"
+          >
             <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/15 bg-cyan-300/[0.06]">
               <Network className="h-5 w-5 text-cyan-200" />
             </div>
@@ -145,7 +178,7 @@ export default function Dashboard() {
                 Career Intelligence
               </p>
             </div>
-          </div>
+          </Link>
 
           <button
             type="button"
@@ -179,12 +212,23 @@ export default function Dashboard() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 rounded-xl border border-cyan-300/10 bg-cyan-300/[0.04] px-4 py-3">
-            <BrainCircuit className="h-4 w-4 text-cyan-200/70" />
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsProfileEditorOpen(true)}
+              className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-xs font-medium text-white/80 transition hover:border-cyan-300/30 hover:bg-white/[0.08] hover:text-white"
+            >
+              <Pencil className="h-3.5 w-3.5 text-cyan-200" />
+              Edit profile
+            </button>
 
-            <span className="text-[10px] uppercase tracking-[0.18em] text-cyan-100/50">
-              AI intelligence ready
-            </span>
+            <div className="flex items-center gap-2 rounded-xl border border-cyan-300/10 bg-cyan-300/[0.04] px-4 py-3">
+              <BrainCircuit className="h-4 w-4 text-cyan-200/70" />
+
+              <span className="text-[10px] uppercase tracking-[0.18em] text-cyan-100/50">
+                AI intelligence ready
+              </span>
+            </div>
           </div>
         </div>
 
@@ -282,22 +326,44 @@ export default function Dashboard() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-6">
-            <p className="text-[9px] uppercase tracking-[0.25em] text-white/25">
-              Target role
-            </p>
+          <div className="group relative rounded-2xl border border-white/[0.07] bg-white/[0.025] p-6 transition hover:border-white/15">
+            <div className="flex items-center justify-between">
+              <p className="text-[9px] uppercase tracking-[0.25em] text-white/25">
+                Target role
+              </p>
+              <button
+                type="button"
+                onClick={() => setIsProfileEditorOpen(true)}
+                className="opacity-0 group-hover:opacity-100 transition rounded-md p-1 text-white/40 hover:text-cyan-200"
+                title="Edit target role"
+                aria-label="Edit target role"
+              >
+                <Pencil className="h-3 w-3" />
+              </button>
+            </div>
 
             <p className="mt-4 text-lg text-white/80">
-              {analysis?.targetRole ??
-                user.targetRole ??
+              {analysis?.targetRole ||
+                user.targetRole ||
                 "Not defined"}
             </p>
           </div>
 
-          <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-6">
-            <p className="text-[9px] uppercase tracking-[0.25em] text-white/25">
-              Skills mapped
-            </p>
+          <div className="group relative rounded-2xl border border-white/[0.07] bg-white/[0.025] p-6 transition hover:border-white/15">
+            <div className="flex items-center justify-between">
+              <p className="text-[9px] uppercase tracking-[0.25em] text-white/25">
+                Skills mapped
+              </p>
+              <button
+                type="button"
+                onClick={() => setIsProfileEditorOpen(true)}
+                className="opacity-0 group-hover:opacity-100 transition rounded-md p-1 text-white/40 hover:text-cyan-200"
+                title="Edit skills"
+                aria-label="Edit skills"
+              >
+                <Pencil className="h-3 w-3" />
+              </button>
+            </div>
 
             <p className="mt-4 text-4xl font-semibold tracking-tight">
               {analysis?.skills.length ??
@@ -324,16 +390,27 @@ export default function Dashboard() {
               </section>
 
               <section className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-7">
-                <div className="flex items-center gap-2">
-                  <Target className="h-4 w-4 text-violet-300/70" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Target className="h-4 w-4 text-violet-300/70" />
 
-                  <p className="text-[9px] uppercase tracking-[0.25em] text-white/30">
-                    Target role
-                  </p>
+                    <p className="text-[9px] uppercase tracking-[0.25em] text-white/30">
+                      Target role
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsProfileEditorOpen(true)}
+                    className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] text-white/50 transition hover:border-violet-300/30 hover:bg-white/[0.06] hover:text-white"
+                  >
+                    <Pencil className="h-3 w-3 text-violet-300/80" />
+                    Edit
+                  </button>
                 </div>
 
                 <p className="mt-5 text-xl text-white/85">
-                  {displayAnalysis.targetRole}
+                  {displayAnalysis.targetRole || "Not defined"}
                 </p>
               </section>
             </div>
@@ -354,6 +431,7 @@ export default function Dashboard() {
               experience={displayAnalysis.experience}
               careerScore={displayAnalysis.careerScore || user.careerScore}
               recommendations={displayAnalysis.recommendations}
+              token={token}
             />
 
             <div className="mt-5 grid gap-5 lg:grid-cols-2">
@@ -453,6 +531,14 @@ export default function Dashboard() {
           </section>
         )}
       </section>
+
+      <ProfileEditorModal
+        isOpen={isProfileEditorOpen}
+        onClose={() => setIsProfileEditorOpen(false)}
+        user={user}
+        token={token}
+        onProfileUpdated={(updatedUser) => updateUser(updatedUser)}
+      />
     </main>
   );
 }

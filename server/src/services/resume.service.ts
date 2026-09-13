@@ -154,14 +154,42 @@ export const processResume = async (
     throw new ApiError(404, "User account not found");
   }
 
+  // Non-destructive skills union merge (preserves user-added skills)
+  const existingSkills = user.skills || [];
+  const mergedSkillsMap = new Map<string, string>();
+
+  // Add freshly extracted analysis skills
+  (analysis.skills || []).forEach((s) => {
+    const clean = s.trim();
+    if (clean) mergedSkillsMap.set(clean.toLowerCase(), clean);
+  });
+
+  // Preserve user's existing manual skills
+  existingSkills.forEach((s) => {
+    const clean = s.trim();
+    if (clean && !mergedSkillsMap.has(clean.toLowerCase())) {
+      mergedSkillsMap.set(clean.toLowerCase(), clean);
+    }
+  });
+
+  const mergedSkills = Array.from(mergedSkillsMap.values());
+
+  // Preserve customized targetRole if user previously specified one
+  const finalTargetRole =
+    user.targetRole && user.targetRole.trim()
+      ? user.targetRole.trim()
+      : analysis.targetRole || "";
+
+  analysis.skills = mergedSkills;
+  analysis.targetRole = finalTargetRole;
+
   user.resumeText = resumeText;
   user.resumeAnalysis = analysis;
-
-  user.skills = analysis.skills;
-  user.targetRole = analysis.targetRole;
+  user.skills = mergedSkills;
+  user.targetRole = finalTargetRole;
   user.careerScore = Math.min(
     100,
-    Math.max(0, analysis.careerScore)
+    Math.max(user.careerScore || 0, analysis.careerScore)
   );
 
   user.markModified("resumeAnalysis");

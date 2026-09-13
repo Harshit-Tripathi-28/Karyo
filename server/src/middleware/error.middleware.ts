@@ -19,9 +19,16 @@ export const errorMiddleware = (
   }
 
   if (err instanceof Error) {
+    const isSensitive =
+      /mongodb|mongo|password|secret|key|token|connection|driver|econnrefused/i.test(
+        err.message
+      );
+
     res.status(500).json({
       success: false,
-      message: err.message,
+      message: isSensitive
+        ? "An internal server error occurred. Please try again later."
+        : err.message || "An unexpected error occurred.",
     });
 
     return;

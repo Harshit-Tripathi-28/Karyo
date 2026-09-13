@@ -1,5 +1,6 @@
 import { ExternalLink, FolderGit2, Layers } from "lucide-react";
 import type { ResumeProject } from "../../types/resume";
+import { isSafeUrl } from "../opportunities/opportunityUtils";
 
 interface ProjectsSectionProps {
   projects?: ResumeProject[];
@@ -62,7 +63,7 @@ export function ProjectsSection({ projects }: ProjectsSectionProps) {
                       </h3>
                     </div>
 
-                    {projectUrl && (
+                    {projectUrl && isSafeUrl(projectUrl) && (
                       <a
                         href={projectUrl}
                         target="_blank"

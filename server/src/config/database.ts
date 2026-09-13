@@ -13,7 +13,9 @@ export const connectDatabase = async (): Promise<void> => {
 
     console.log("KARYO database connected");
   } catch (error) {
-    console.error("MongoDB connection failed:", error);
+    const rawMessage = error instanceof Error ? error.message : String(error);
+    const sanitizedMsg = rawMessage.replace(/\/\/([^:]+):([^@]+)@/, "//$1:***@");
+    console.error("MongoDB connection failed:", sanitizedMsg);
     process.exit(1);
   }
 };

@@ -69,6 +69,11 @@ function Core() {
   );
 }
 
+function pseudoRandom(seed: number): number {
+  const x = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+  return x - Math.floor(x);
+}
+
 function NeuralNetwork() {
   const nodes = useMemo<NeuralNode[]>(() => {
     return Array.from({ length: NODE_COUNT }, (_, index) => {
@@ -77,17 +82,17 @@ function NeuralNetwork() {
       const radius =
         2.8 +
         Math.sin(index * 1.7) * 1.2 +
-        Math.random() * 2.5;
+        pseudoRandom(index * 1.1) * 2.5;
 
       return {
         position: [
           Math.cos(angle) * radius +
-            (Math.random() - 0.5) * 2,
-          (Math.random() - 0.5) * 5.5,
+            (pseudoRandom(index * 2.2) - 0.5) * 2,
+          (pseudoRandom(index * 3.3) - 0.5) * 5.5,
           Math.sin(angle) * radius +
-            (Math.random() - 0.5) * 2,
+            (pseudoRandom(index * 4.4) - 0.5) * 2,
         ],
-        size: 0.018 + Math.random() * 0.045,
+        size: 0.018 + pseudoRandom(index * 5.5) * 0.045,
       };
     });
   }, []);

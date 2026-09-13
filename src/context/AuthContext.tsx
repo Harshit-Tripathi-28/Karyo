@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -109,18 +110,29 @@ export function AuthProvider({
     setUser(response.user);
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
 
     setToken(null);
     setUser(null);
-  };
+  }, []);
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      logout();
+    };
+
+    window.addEventListener("karyo:unauthorized", handleUnauthorized);
+    return () => {
+      window.removeEventListener("karyo:unauthorized", handleUnauthorized);
+    };
+  }, [logout]);
 
   const updateUser = (updatedUser: User) => {
     setUser(updatedUser);
   };
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     if (!token) return;
 
     try {
@@ -129,7 +141,7 @@ export function AuthProvider({
     } catch {
       // Keep existing state if network fails
     }
-  };
+  }, [token]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -143,7 +155,7 @@ export function AuthProvider({
       updateUser,
       refreshUser,
     }),
-    [user, token, isLoading]
+    [user, token, isLoading, logout, refreshUser]
   );
 
   return (
@@ -153,6 +165,7 @@ export function AuthProvider({
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext);
 

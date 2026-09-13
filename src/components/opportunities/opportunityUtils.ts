@@ -255,3 +255,13 @@ export function calculateRoleAlignment(
     actionableMilestones,
   };
 }
+
+/**
+ * Strict protocol validation for external links.
+ * Ensures the URL begins with http:// or https:// to prevent script injection (e.g. javascript:)
+ */
+export function isSafeUrl(url?: string | null): boolean {
+  if (!url || typeof url !== "string") return false;
+  const trimmed = url.trim();
+  return /^https?:\/\//i.test(trimmed);
+}

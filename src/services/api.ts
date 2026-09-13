@@ -52,6 +52,10 @@ export const apiRequest = async <T>(
   }
 
   if (!response.ok) {
+    if (response.status === 401 && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("karyo:unauthorized"));
+    }
+
     throw new Error(
       data.message ?? "KARYO API request failed"
     );
